@@ -1,0 +1,247 @@
+/* @cdep pre
+    $if($BuildFinal,
+        $set(MasterBuildDir,$clipfilename($file)/build_final)
+        $set(BuildDir,$clipfilename($file)/build_final)
+        $// NOTE that the doc build below assumes the dir is build_final!!
+        ,
+        $set(MasterBuildDir,$clipfilename($file)/build)
+        $set(BuildDir,$clipfilename($file)/build)
+        )
+
+    $mkdir($BuildDir)
+    $mkdir($BuildDir/win64)
+    $mkdir($BuildDir/lnx64)
+    $mkdir($BuildDir/osx64)
+
+    $when($BuildAll, $removefile( $BuildDir/stats_$getenv(OSTYPE).cache ))
+    $unless($LogMode, $cache($BuildDir/stats_$getenv(OSTYPE).cache))
+
+    $define(Here, $clipfilename($file))
+
+    $set(ProjDir, $clipfilename($file))
+    $set(SharedDir, $ProjDir/../projects/shared)
+
+
+    $// Paths for the binka audio decoder.
+    $path($SharedDir/rtl, *.h)
+    $path($SharedDir/generic, *.h)
+    $path($SharedDir/memory, *.h)
+
+    $path($ProjDir/../projects/miles/src/sdk/shared, *.c;*.h;*.cpp;*.inl)
+    $path($ProjDir/../projects/miles/src/support/shared, *.c;*.h;*.cpp;*.inl)
+    $path($ProjDir/../projects/miles/src/support/imgui, *.h)
+    $path($ProjDir/../projects/miles/src/external, *.h)
+    $path($SharedDir/sound, *.inl;*.h;*.cpp;*.c)
+    $path($SharedDir/radrtl, *.inl;*.h)
+
+    $path($ProjDir/src/sdk/win, *.h)
+
+    $// Disable link time code gen if we aren't on final builds, cause it's slow.
+    $unless($BuildFinal, $set(noLTCG, 1))
+    
+    $requires(../projects/bin/cdep/master_jeffr.cdep)
+
+    $define(CompileDistrib,
+        $if($if($1, $ispresent($1,W32), $ispresent($doingplatforms,W32)),
+            $set(CurrentPlatform, win32)
+            $set(DistribFile, $clipdir($0)win32.dll)
+            $define(AddLib, $requiresbinary($BuildDir/$0win32.lib))
+            $if($TelemetryOn, 
+                $define(Defaults, $DefaultsDLL($DistribFile, ))
+                ,
+                $define(Defaults, $DefaultsDLL($DistribFile, ))
+                )
+            $define(Build, $BuildDLL(, ))
+            $set(BuildDir, $MasterBuildDir/win32)
+            $cdep($0.cdep, $clipfilename($file))
+            , )
+
+        $if($if($1, $ispresent($1,W64), $ispresent($doingplatforms,W64)),
+            $set(CurrentPlatform, win64)
+            $set(DistribFile, $clipdir($0)win64.dll)
+            $define(AddLib, $requiresbinary($BuildDir/$0win64.lib))
+            $if($TelemetryOn, 
+                $define(Defaults, $DefaultsDLL64EMT($DistribFile, ))
+                ,
+                $define(Defaults, $DefaultsDLL64EMT($DistribFile, ))
+                )            
+            $define(Build, $BuildDLL64EMT(, ))
+            $set(BuildDir, $MasterBuildDir/win64)
+            $cdep($0.cdep, $clipfilename($file))
+            , )
+
+        $if($if($1, $ispresent($1,L64), $ispresent($doingplatforms,L64)),
+            $set(CurrentPlatform, lnx64)
+            $set(DistribFile, lib$clipdir($0)lnx64.so)
+            $define(AddLib, $requiresbinary($BuildDir/lib$0lnx64.so))
+            $define(Defaults, $DefaultsLinux64SO($DistribFile, ))
+            $define(Build, $BuildLinux64SO(, ))
+            $set(BuildDir, $MasterBuildDir/lnx64)
+            $cdep($0.cdep, $clipfilename($file))
+            , )
+
+        $if($if($1, $ispresent($1,M64), $ispresent($doingplatforms,M64)),
+            $set(CurrentPlatform, osx64)
+            $set(DistribFile, lib$clipdir($0)osx64.dylib)
+            $define(AddLib, $requiresbinary($BuildDir/lib$0osx64.dylib))
+            $define(Defaults, $DefaultsX64MacSharedLibCarbonMacho($DistribFile, ))
+            $define(Build, $BuildMac64(, ))
+            $set(BuildDir, $MasterBuildDir/osx64)
+            $cdep($0.cdep, $clipfilename($file))
+            , )
+           
+        )
+
+    $define(CompileLibrary,
+
+        $if($if($1, $ispresent($1,W64), $ispresent($doingplatforms,W64)),
+            $set(CurrentPlatform, win64)
+            $set(DistribFile, $clipdir($0)win64.lib)        
+            $define(AddLib, $requiresbinary($BuildDir/$0win64.lib))
+            $define(Defaults, $DefaultsLib64EMT($DistribFile, ))
+            $define(Build, $BuildLib64EMT(, ))
+            $set(BuildDir, $MasterBuildDir/win64)
+            $cdep($0.cdep, $clipfilename($file))
+            , )
+
+
+        $if($if($1, $ispresent($1,M64), $ispresent($doingplatforms,M64)),
+            $set(CurrentPlatform, osx64)
+            $set(DistribFile, lib$clipdir($0)osx64.a)
+            $define(AddLib, $requiresbinary($BuildDir/lib$0osx64.a))
+            $define(Defaults, $DefaultsX64MacStaticLibCarbonMacho($DistribFile, ))
+            $define(Build, $BuildMac64(, ))
+            $set(BuildDir, $MasterBuildDir/osx64)
+            $cdep($0.cdep, $clipfilename($file))
+            , )
+
+        $if($if($1, $ispresent($1,L64), $ispresent($doingplatforms,L64)),
+            $set(CurrentPlatform, lnx64)
+            $set(DistribFile, lib$clipdir($0)lnx64.a)
+            $define(AddLib, $requiresbinary($BuildDir/lib$0lnx64.a))
+            $define(Defaults, $DefaultsLinux64Lib($DistribFile, ))
+            $define(Build, $BuildLinux64Lib(, ))
+            $set(BuildDir, $MasterBuildDir/lnx64)
+            $cdep($0.cdep, $clipfilename($file))
+            , )
+
+        )
+
+    $define(CompileExec,
+        $if($ispresent($doingplatforms,W32),
+            $if($if($1, $ispresent($1,W32), 1),
+                $define(AddLib, $requiresbinary($BuildDir/$0win32.lib))
+                $define(CoreDefaults, $DefaultsWinExe(, ))
+                $if($TelemetryOn, 
+                    $define(Defaults, $CoreDefaults)
+                    ,
+                    $define(Defaults, $CoreDefaults)
+                    )
+                $define(Build, $BuildWinExe(, ))
+                $set(BuildDir, $MasterBuildDir/win32)
+                $cdep($0, $clipfilename($file))
+                , 
+                )
+            ,
+            )
+
+        $if($ispresent($doingplatforms,W64),
+            $if($if($1, $ispresent($1,W64), 1),
+                $define(AddLib, $requiresbinary($BuildDir/$0win64.lib))
+                $define(CoreDefaults, $DefaultsWinExe64EMT(, ))
+                $if($TelemetryOn, 
+                    $define(Defaults, $CoreDefaults)
+                    ,
+                    $define(Defaults, $CoreDefaults)
+                    )            
+                $define(Build, $BuildWinExe64EMT(, ))
+                $set(BuildDir, $MasterBuildDir/win64)
+                $cdep($0, $clipfilename($file))
+                , 
+                )
+            ,
+            )
+
+        $if($ispresent($doingplatforms,M64),
+            $if($if($1, $ispresent($1,M64), 1),
+                $define(AddLib, $requiresbinary($BuildDir/lib$0osx64.a))
+                $define(AddDll, $requiresbinary($BuildDir/lib$0osx64.dylib))
+                $define(CoreDefaults, $DefaultsX64MacConsole(, ))
+                $if($TelemetryOn, 
+                    $define(Defaults, $CoreDefaults)
+                    ,
+                    $define(Defaults, $CoreDefaults)
+                    )            
+                $define(Build, $BuildMac64(, ))
+                $set(BuildDir, $MasterBuildDir/osx64)
+                $cdep($0, $clipfilename($file))
+                , 
+                )
+            ,
+            )
+
+        $if($ispresent($doingplatforms,L64),
+            $if($if($1, $ispresent($1,L64), 1),
+                $define(AddLib, $requiresbinary($BuildDir/lib$0lnx64.a))
+                $define(AddDll, $requiresbinary($BuildDir/lib$0lnx64.so))
+                $define(CoreDefaults, $DefaultsLinux64Exe(, ))
+                $if($TelemetryOn, 
+                    $define(Defaults, $CoreDefaults)
+                    ,
+                    $define(Defaults, $CoreDefaults)
+                    )            
+                $define(Build, $BuildLinux64Exe(, ))
+                $set(BuildDir, $MasterBuildDir/lnx64)
+                $cdep($0, $clipfilename($file))
+                , 
+                )
+            ,
+            )          
+        )
+
+*/
+
+//-----------------------------------------------------------------------------
+//
+//
+//      ACTUAL BUILD STUFF STARTS HERE
+//
+//
+//-----------------------------------------------------------------------------
+/* @cdep post
+
+    $// remove telemetry from cdep builds when we aren't profiling, or
+    $// we are building a platform that doesn't support it. Annoyingly
+    $// this means if we *include* say PS4, then no one gets telemetry,
+    $// so be sure to do -only____ if profiling...
+    $set(TelemetrySupported, 1)
+    $when($ispresent($doingplatforms,ORBIS)$ispresent($doingplatforms,ANDROID),
+        $set(TelemetrySupported, )
+        )
+
+    $when($equals($DefaultBuildName,profile),
+        $when($TelemetrySupported,
+            $set(TelemetryOn, 1)
+        ))
+
+    $unless($TelemetryOn, $addtocswitches(-DNTELEMETRY))
+
+    $// Support Libraries
+    $CompileLibrary(../projects/miles/src/support/imgui/gui, W64)
+
+    $CompileExec(src/corestats.cdep, W64)
+
+    $//
+    $// Move the Telemetry DLL if we are profiling.
+    $//
+    $when($TelemetryOn,
+        $when($ispresent($doingplatforms,W32),
+            $copyifnewer($ProjDir/src/external/rad_tm_win32.dll, $MasterBuildDir/win32)
+            )
+        $when($ispresent($doingplatforms,W64),
+            $copyifnewer($ProjDir/src/external/rad_tm_win64.dll, $MasterBuildDir/win64)
+            )            
+        )
+
+*/
+

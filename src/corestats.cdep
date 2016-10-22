@@ -1,0 +1,32 @@
+/* @cdep pre
+    $Defaults
+
+    $path($clipfilename($file), *.c;*.h;*.cpp;*.i;*.rc;*.ico;*.cdep)
+    $path($SharedDir/memory, *.h)
+    
+    $set(NoAutoInclude, 1)
+
+    $addlib(gui)
+
+    $requires($SharedDir/radrtl/win32/win32_rrThreads.c)
+    $requires($SharedDir/radrtl/win32/win32_rrAtomics.cpp)
+    $requires($SharedDir/radrtl/win32/win32_rrTime.cpp)
+    $requires($SharedDir/radrtl/win32/win32_rrCPU.c)
+
+    $requires($SharedDir/rtl/x86/x86_cpu.c)
+
+    $requires(entrypoint.cpp)
+
+    $requiresbinary(ws2_32.lib)
+    $requiresbinary(shell32.lib)
+    $requiresbinary(Comctl32.lib)
+    $requiresbinary(Shlwapi.lib)
+    $requiresbinary(ole32.lib)
+    $requiresbinary(opengl32.lib)
+    $requiresbinary(Comdlg32.lib)
+    $requiresbinary(uuid.lib)
+*/
+
+/* @cdep post $Build(StatsFE)
+*/
+
